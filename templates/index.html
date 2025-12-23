@@ -1,450 +1,266 @@
 <!DOCTYPE html>
 <html lang="zh-TW" class="dark">
-<head>
+  <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Video/Subtitle Station</title>
+    <title>SRT Video Cutter</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="static/styles.css" />
     <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        tech: {
-                            50: '#f0fdfa',
-                            100: '#ccfbf1',
-                            400: '#2dd4bf',
-                            500: '#14b8a6',
-                            600: '#0d9488',
-                            700: '#0f766e',
-                            800: '#115e59',
-                            900: '#134e4a',
-                            950: '#042f2e',
-                        },
-                        neon: '#00f3ff'
-                    }
-                }
-            }
-        }
+    tailwind.config = {
+    darkMode: 'class',
+    theme: {
+    extend: {
+    colors: {
+    tech: {
+    50: '#f0fdfa',
+    100: '#ccfbf1',
+    400: '#2dd4bf',
+    500: '#14b8a6',
+    600: '#0d9488',
+    700: '#0f766e',
+    800: '#115e59',
+    900: '#134e4a',
+    950: '#042f2e',
+    },
+    neon: '#00f3ff'
+    }
+    }
+    }
+    }
     </script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+TC:wght@400;700&display=swap');
-        body { font-family: 'Noto Sans TC', sans-serif; }
-        .mono { font-family: 'JetBrains Mono', monospace; }
-        .glass {
-            background: rgba(19, 78, 74, 0.4);
-            backdrop-filter: blur(8px);
-            border: 1px solid rgba(45, 212, 191, 0.2);
-        }
-        .dark .glass {
-            background: rgba(4, 47, 46, 0.7);
-            border: 1px solid rgba(45, 212, 191, 0.1);
-        }
-        /* Custom Checkbox */
-        .check-box:checked + div {
-            background-color: #0d9488;
-            border-color: #0d9488;
-        }
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+TC:wght@400;700&display=swap');
     </style>
-</head>
-<body class="bg-gray-100 text-gray-800 dark:bg-slate-950 dark:text-gray-200 transition-colors duration-300 min-h-screen flex flex-col">
-
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body class="bg-gray-100 text-gray-800 dark:bg-slate-950 dark:text-gray-200 transition-colors duration-300 min-h-screen flex flex-col">
     <nav class="w-full p-4 border-b border-gray-300 dark:border-slate-800 flex justify-between items-center bg-white/80 dark:bg-slate-900/80 backdrop-blur sticky top-0 z-50">
-        <div class="flex items-center gap-2">
-            <div class="w-3 h-3 bg-tech-400 rounded-full animate-pulse"></div>
-            <h1 class="text-xl font-bold tracking-wider mono">AI_MEDIA<span class="text-tech-500">_STATION</span></h1>
-        </div>
-        <button id="theme-toggle" class="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-slate-800 transition">
-            <span id="theme-icon">🌞</span>
-        </button>
+      <div class="flex items-center gap-2">
+        <div class="w-3 h-3 bg-tech-400 rounded-full animate-pulse"></div>
+        <h1 class="text-xl font-bold tracking-wider mono">SRT Video Cutter<span class="text-tech-500">_設定介面</span></h1>
+      </div>
+      <button id="theme-toggle" class="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-slate-800 transition">
+      <span id="theme-icon">🌞</span>
+      </button>
     </nav>
-
     <div class="container mx-auto px-4 md:px-8 mt-6">
-        <div class="flex space-x-2 border-b border-gray-300 dark:border-slate-800">
-            <button onclick="switchTab('cutter')" id="tab-btn-cutter" class="px-6 py-3 font-bold border-b-2 transition-colors border-tech-500 text-tech-600 dark:text-tech-400">
-                ✂️ 影片剪輯 (Cutter)
-            </button>
-            <button onclick="switchTab('whisper')" id="tab-btn-whisper" class="px-6 py-3 font-bold border-b-2 border-transparent hover:border-gray-400 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors">
-                📝 字幕生成 (Whisper)
-            </button>
-        </div>
+      <div class="flex space-x-2 border-b border-gray-300 dark:border-slate-800">
+        <button onclick="switchTab('cutter')" id="tab-btn-cutter" class="px-6 py-3 font-bold border-b-2 transition-colors border-tech-500 text-tech-600 dark:text-tech-400">
+        ✂️ 影片剪輯 (Cutter)
+        </button>
+        <button onclick="switchTab('whisper')" id="tab-btn-whisper" class="px-6 py-3 font-bold border-b-2 border-transparent hover:border-gray-400 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors">
+        📝 字幕生成 (Whisper)
+        </button>
+      </div>
     </div>
-
     <main class="flex-grow container mx-auto p-4 md:p-8 max-w-5xl">
-        
-        <div id="tab-cutter-content" class="block">
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div class="lg:col-span-2 space-y-6">
-                    <div class="bg-white dark:bg-slate-900 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-slate-800">
-                        <h2 class="text-lg font-bold mb-4 flex items-center gap-2 text-tech-800 dark:text-tech-400">
-                            檔案路徑設定
-                        </h2>
-                        <form id="cutter-form" class="space-y-4">
-                            <div>
-                                <label class="block text-sm font-medium mb-1">影片路徑 (Input Video)</label>
-                                <input type="text" name="input_file" required placeholder="C:/Videos/source.mp4" class="mono w-full bg-gray-50 dark:bg-slate-950 border border-gray-300 dark:border-slate-700 rounded px-3 py-2 focus:ring-2 focus:ring-tech-400 outline-none transition-colors">
-                            </div>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label class="block text-sm font-medium mb-1">字幕路徑 (SRT)</label>
-                                    <input type="text" name="srt_file" placeholder="Auto detect..." class="mono w-full bg-gray-50 dark:bg-slate-950 border border-gray-300 dark:border-slate-700 rounded px-3 py-2 focus:ring-2 focus:ring-tech-400 outline-none transition-colors">
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium mb-1">輸出路徑 (Output)</label>
-                                    <input type="text" name="output_file" placeholder="Auto name..." class="mono w-full bg-gray-50 dark:bg-slate-950 border border-gray-300 dark:border-slate-700 rounded px-3 py-2 focus:ring-2 focus:ring-tech-400 outline-none transition-colors">
-                                </div>
-                            </div>
-                        </form>
-                    </div>
-
-                    <div class="bg-white dark:bg-slate-900 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-slate-800 relative overflow-hidden">
-                        <h2 class="text-lg font-bold mb-4 flex items-center gap-2 text-tech-800 dark:text-tech-400">
-                            音效處理參數 (Audio Chain)
-                        </h2>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6" form="cutter-form">
-                            <div class="group">
-                                <label class="block text-sm font-medium mb-1">Highpass Freq (Hz)</label>
-                                <input type="number" id="highpass" form="cutter-form" name="highpass" value="80" class="w-full bg-gray-50 dark:bg-slate-950 border border-gray-300 dark:border-slate-700 rounded px-3 py-2 focus:ring-tech-400 transition-colors">
-                            </div>
-                            <div class="group">
-                                <label class="block text-sm font-medium mb-1">FFT Denoise (dB)</label>
-                                <input type="number" id="afftdn" form="cutter-form" name="afftdn" value="12" class="w-full bg-gray-50 dark:bg-slate-950 border border-gray-300 dark:border-slate-700 rounded px-3 py-2 focus:ring-tech-400 transition-colors">
-                            </div>
-                            <div class="md:col-span-2 group">
-                                <label class="block text-sm font-medium mb-1">Echo (In:Out:Delay:Decay)</label>
-                                <input type="text" id="aecho" form="cutter-form" name="aecho" value="0.8:0.3:40:0.2" class="mono w-full bg-gray-50 dark:bg-slate-950 border border-gray-300 dark:border-slate-700 rounded px-3 py-2 focus:ring-tech-400 transition-colors">
-                            </div>
-                            <div class="group">
-                                <label class="block text-sm font-medium mb-1">Norm Expansion (e)</label>
-                                <input type="number" id="speechnorm_e" form="cutter-form" name="speechnorm_e" value="4" class="w-full bg-gray-50 dark:bg-slate-950 border border-gray-300 dark:border-slate-700 rounded px-3 py-2 focus:ring-tech-400 transition-colors">
-                            </div>
-                            <div class="group">
-                                <label class="block text-sm font-medium mb-1">Norm Compression (p)</label>
-                                <input type="number" step="0.1" id="speechnorm_p" form="cutter-form" name="speechnorm_p" value="0.9" class="w-full bg-gray-50 dark:bg-slate-950 border border-gray-300 dark:border-slate-700 rounded px-3 py-2 focus:ring-tech-400 transition-colors">
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <button type="button" onclick="submitCutter()" class="w-full py-4 bg-gradient-to-r from-teal-600 to-blue-600 hover:from-teal-500 hover:to-blue-500 text-white font-bold rounded-xl shadow-lg transform hover:scale-[1.01] transition-all flex justify-center items-center gap-2">
-                        <span>🚀 開始執行剪輯</span>
-                    </button>
+      
+      <div id="tab-cutter-content" class="block">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div class="lg:col-span-2 space-y-6">
+            <div class="bg-white dark:bg-slate-900 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-slate-800">
+              <h2 class="text-lg font-bold mb-4 flex items-center gap-2 text-tech-800 dark:text-tech-400">
+              檔案路徑設定
+              </h2>
+              <form id="cutter-form" class="space-y-4">
+                <div>
+                  <label class="block text-sm font-medium mb-1">影片路徑 (Input Video)</label>
+                  <input type="text" name="input_file" required placeholder="C:/Videos/source.mp4" class="mono w-full bg-gray-50 dark:bg-slate-950 border border-gray-300 dark:border-slate-700 rounded px-3 py-2 focus:ring-2 focus:ring-tech-400 outline-none transition-colors">
                 </div>
-
-                <div class="lg:col-span-1 space-y-4">
-                    <div class="bg-white dark:bg-slate-900 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-slate-800 sticky top-24">
-                        <h2 class="text-lg font-bold mb-4 text-tech-800 dark:text-tech-400 border-b border-gray-200 dark:border-slate-700 pb-2">
-                            ⚡ 快速情境 (Presets)
-                        </h2>
-                        <div class="space-y-3">
-                        <button onclick="applyPreset('dry')" class="w-full text-left px-4 py-3 rounded-lg bg-gray-50 dark:bg-slate-800 hover:bg-tech-100 dark:hover:bg-slate-700 border border-transparent hover:border-tech-400 transition group">
-                            <div class="font-bold text-sm text-gray-700 dark:text-gray-200 group-hover:text-tech-600 dark:group-hover:text-tech-400">🎤 人聲偏乾</div>
-                            <div class="text-xs text-gray-500">增加 Echo 填補空隙感</div>
-                        </button>
-
-                        <button onclick="applyPreset('tutorial')" class="w-full text-left px-4 py-3 rounded-lg bg-gray-50 dark:bg-slate-800 hover:bg-tech-100 dark:hover:bg-slate-700 border border-transparent hover:border-tech-400 transition group">
-                            <div class="font-bold text-sm text-gray-700 dark:text-gray-200 group-hover:text-tech-600 dark:group-hover:text-tech-400">📚 教學影片內容</div>
-                            <div class="text-xs text-gray-500">清晰化，中等降噪，微量 Echo</div>
-                        </button>
-
-                        <button onclick="applyPreset('bass')" class="w-full text-left px-4 py-3 rounded-lg bg-gray-50 dark:bg-slate-800 hover:bg-tech-100 dark:hover:bg-slate-700 border border-transparent hover:border-tech-400 transition group">
-                            <div class="font-bold text-sm text-gray-700 dark:text-gray-200 group-hover:text-tech-600 dark:group-hover:text-tech-400">🥁 增加音樂重低音</div>
-                            <div class="text-xs text-gray-500">降低 Highpass 頻率保留低頻</div>
-                        </button>
-
-                         <button onclick="applyPreset('denoise_only')" class="w-full text-left px-4 py-3 rounded-lg bg-gray-50 dark:bg-slate-800 hover:bg-tech-100 dark:hover:bg-slate-700 border border-transparent hover:border-tech-400 transition group">
-                            <div class="font-bold text-sm text-gray-700 dark:text-gray-200 group-hover:text-tech-600 dark:group-hover:text-tech-400">🔇 只進行降噪</div>
-                            <div class="text-xs text-gray-500">關閉 Highpass/Echo/Norm</div>
-                        </button>
-
-                        <button onclick="applyPreset('no_echo')" class="w-full text-left px-4 py-3 rounded-lg bg-gray-50 dark:bg-slate-800 hover:bg-tech-100 dark:hover:bg-slate-700 border border-transparent hover:border-tech-400 transition group">
-                            <div class="font-bold text-sm text-gray-700 dark:text-gray-200 group-hover:text-tech-600 dark:group-hover:text-tech-400">🚫 關閉 Echo</div>
-                            <div class="text-xs text-gray-500">保留降噪與標準化</div>
-                        </button>
-
-                        <button onclick="applyPreset('off')" class="w-full text-left px-4 py-3 rounded-lg border border-red-200 dark:border-red-900/30 bg-red-50 dark:bg-red-900/10 hover:bg-red-100 dark:hover:bg-red-900/30 transition group">
-                            <div class="font-bold text-sm text-red-700 dark:text-red-400">🛑 完全關閉音效</div>
-                            <div class="text-xs text-red-400 dark:text-red-500">只剪輯，不做任何處理</div>
-                        </button>
-                            </div>
-                    </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label class="block text-sm font-medium mb-1">字幕路徑 (SRT)</label>
+                    <input type="text" name="srt_file" placeholder="Auto detect..." class="mono w-full bg-gray-50 dark:bg-slate-950 border border-gray-300 dark:border-slate-700 rounded px-3 py-2 focus:ring-2 focus:ring-tech-400 outline-none transition-colors">
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium mb-1">輸出路徑 (Output)</label>
+                    <input type="text" name="output_file" placeholder="Auto name..." class="mono w-full bg-gray-50 dark:bg-slate-950 border border-gray-300 dark:border-slate-700 rounded px-3 py-2 focus:ring-2 focus:ring-tech-400 outline-none transition-colors">
+                  </div>
                 </div>
+              </form>
             </div>
-        </div>
-
-        <div id="tab-whisper-content" class="hidden">
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                
-                <div class="bg-white dark:bg-slate-900 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-slate-800">
-                    <div class="flex items-center gap-3 mb-4 border-b border-gray-200 dark:border-slate-700 pb-3">
-                        <div class="bg-tech-500 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold">1</div>
-                        <h2 class="text-lg font-bold text-tech-800 dark:text-tech-400">音訊提取 (Pre-process)</h2>
-                    </div>
-                    <form id="extract-form" class="space-y-4">
-                        <div>
-                            <label class="block text-sm font-medium mb-1">輸入影片 (Input Video)</label>
-                            <input type="text" id="extract_input" name="input_video" required placeholder="C:/Videos/raw_video.mp4" class="mono w-full bg-gray-50 dark:bg-slate-950 border border-gray-300 dark:border-slate-700 rounded px-3 py-2 focus:ring-2 focus:ring-tech-400 outline-none transition-colors">
-                        </div>
-                        <button type="button" onclick="submitExtract()" class="w-full py-3 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded-lg transition-colors flex justify-center items-center gap-2">
-                            <span>🎵 轉換為單聲道 MP3 (16kHz)</span>
-                        </button>
-                    </form>
-                    <p class="text-xs text-gray-500 mt-3 bg-gray-100 dark:bg-slate-800 p-2 rounded">
-                        指令範例: <code class="mono">ffmpeg -i input.mp4 -ar 16000 -ac 1 -ab 16k output.mp3</code>
-                    </p>
+            <div class="bg-white dark:bg-slate-900 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-slate-800 relative overflow-hidden">
+              <h2 class="text-lg font-bold mb-4 flex items-center gap-2 text-tech-800 dark:text-tech-400">
+              音效處理參數 (Audio Chain)
+              </h2>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6" form="cutter-form">
+                <div class="group">
+                  <label class="block text-sm font-medium mb-1">Highpass Freq (Hz)</label>
+                  <input type="number" id="highpass" form="cutter-form" name="highpass" value="80" class="w-full bg-gray-50 dark:bg-slate-950 border border-gray-300 dark:border-slate-700 rounded px-3 py-2 focus:ring-tech-400 transition-colors">
                 </div>
-
-                <div class="bg-white dark:bg-slate-900 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-slate-800">
-                    <div class="flex items-center gap-3 mb-4 border-b border-gray-200 dark:border-slate-700 pb-3">
-                        <div class="bg-tech-500 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold">2</div>
-                        <h2 class="text-lg font-bold text-tech-800 dark:text-tech-400">生成字幕 (Whisper AI)</h2>
-                    </div>
-                    
-                    <form id="whisper-form" class="space-y-4">
-                        <div>
-                            <label class="block text-sm font-medium mb-1">輸入音訊 (Input MP3)</label>
-                            <input type="text" id="whisper_input" name="input_mp3" required placeholder="C:/Videos/raw_video.mp3" class="mono w-full bg-gray-50 dark:bg-slate-950 border border-gray-300 dark:border-slate-700 rounded px-3 py-2 focus:ring-2 focus:ring-tech-400 outline-none transition-colors">
-                        </div>
-
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-sm font-medium mb-1">語言 (Language)</label>
-                                <input type="text" name="language" value="zh" class="w-full bg-gray-50 dark:bg-slate-950 border border-gray-300 dark:border-slate-700 rounded px-3 py-2 focus:ring-tech-400">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium mb-1">硬體加速 (Device)</label>
-                                <div class="relative">
-                                    <select name="device" class="appearance-none w-full bg-gray-50 dark:bg-slate-950 border border-gray-300 dark:border-slate-700 rounded px-3 py-2 focus:ring-tech-400 cursor-pointer">
-                                        <option value="cpu" selected>CPU (預設)</option>
-                                        <option value="cuda">GPU (CUDA)</option>
-                                    </select>
-                                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">▼</div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div>
-                            <label class="block text-sm font-medium mb-1">模型大小 (Model)</label>
-                            <div class="relative">
-                                <select name="model" class="appearance-none w-full bg-gray-50 dark:bg-slate-950 border border-gray-300 dark:border-slate-700 rounded px-3 py-2 focus:ring-tech-400 cursor-pointer">
-                                    <option value="tiny">Tiny (最快/不準)</option>
-                                    <option value="base" selected>Base (平衡)</option>
-                                    <option value="small">Small</option>
-                                    <option value="medium">Medium</option>
-                                    <option value="large">Large (最慢/精準)</option>
-                                    <option value="turbo">Turbo</option>
-                                </select>
-                                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">▼</div>
-                            </div>
-                        </div>
-
-                        <div>
-                            <label class="block text-sm font-medium mb-2">輸出格式 (Output Formats)</label>
-                            <div class="grid grid-cols-3 gap-2">
-                                <label class="cursor-pointer flex items-center gap-2">
-                                    <input type="checkbox" name="output_formats" value="srt" checked class="check-box hidden">
-                                    <div class="w-4 h-4 border border-gray-400 rounded flex items-center justify-center transition-colors"></div>
-                                    <span class="text-sm">srt</span>
-                                </label>
-                                <label class="cursor-pointer flex items-center gap-2">
-                                    <input type="checkbox" name="output_formats" value="vtt" class="check-box hidden">
-                                    <div class="w-4 h-4 border border-gray-400 rounded flex items-center justify-center transition-colors"></div>
-                                    <span class="text-sm">vtt</span>
-                                </label>
-                                <label class="cursor-pointer flex items-center gap-2">
-                                    <input type="checkbox" name="output_formats" value="txt" class="check-box hidden">
-                                    <div class="w-4 h-4 border border-gray-400 rounded flex items-center justify-center transition-colors"></div>
-                                    <span class="text-sm">txt</span>
-                                </label>
-                                <label class="cursor-pointer flex items-center gap-2">
-                                    <input type="checkbox" name="output_formats" value="json" class="check-box hidden">
-                                    <div class="w-4 h-4 border border-gray-400 rounded flex items-center justify-center transition-colors"></div>
-                                    <span class="text-sm">json</span>
-                                </label>
-                                <label class="cursor-pointer flex items-center gap-2">
-                                    <input type="checkbox" name="output_formats" value="tsv" class="check-box hidden">
-                                    <div class="w-4 h-4 border border-gray-400 rounded flex items-center justify-center transition-colors"></div>
-                                    <span class="text-sm">tsv</span>
-                                </label>
-                                <label class="cursor-pointer flex items-center gap-2">
-                                    <input type="checkbox" name="output_formats" value="all" class="check-box hidden">
-                                    <div class="w-4 h-4 border border-gray-400 rounded flex items-center justify-center transition-colors"></div>
-                                    <span class="text-sm">All</span>
-                                </label>
-                            </div>
-                        </div>
-
-                        <button type="button" onclick="submitWhisper()" class="w-full py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold rounded-xl shadow-lg transform hover:scale-[1.01] transition-all flex justify-center items-center gap-2">
-                            <span>✨ 開始生成字幕</span>
-                        </button>
-                    </form>
+                <div class="group">
+                  <label class="block text-sm font-medium mb-1">FFT Denoise (dB)</label>
+                  <input type="number" id="afftdn" form="cutter-form" name="afftdn" value="12" class="w-full bg-gray-50 dark:bg-slate-950 border border-gray-300 dark:border-slate-700 rounded px-3 py-2 focus:ring-tech-400 transition-colors">
                 </div>
+                <div class="md:col-span-2 group">
+                  <label class="block text-sm font-medium mb-1">Echo (In:Out:Delay:Decay)</label>
+                  <input type="text" id="aecho" form="cutter-form" name="aecho" value="0.8:0.3:40:0.2" class="mono w-full bg-gray-50 dark:bg-slate-950 border border-gray-300 dark:border-slate-700 rounded px-3 py-2 focus:ring-tech-400 transition-colors">
+                </div>
+                <div class="group">
+                  <label class="block text-sm font-medium mb-1">Norm Expansion (e)</label>
+                  <input type="number" id="speechnorm_e" form="cutter-form" name="speechnorm_e" value="4" class="w-full bg-gray-50 dark:bg-slate-950 border border-gray-300 dark:border-slate-700 rounded px-3 py-2 focus:ring-tech-400 transition-colors">
+                </div>
+                <div class="group">
+                  <label class="block text-sm font-medium mb-1">Norm Compression (p)</label>
+                  <input type="number" step="0.1" id="speechnorm_p" form="cutter-form" name="speechnorm_p" value="0.9" class="w-full bg-gray-50 dark:bg-slate-950 border border-gray-300 dark:border-slate-700 rounded px-3 py-2 focus:ring-tech-400 transition-colors">
+                </div>
+              </div>
             </div>
+            
+            <button type="button" onclick="submitCutter()" class="w-full py-4 bg-gradient-to-r from-teal-600 to-blue-600 hover:from-teal-500 hover:to-blue-500 text-white font-bold rounded-xl shadow-lg transform hover:scale-[1.01] transition-all flex justify-center items-center gap-2">
+            <span>🚀 開始執行剪輯</span>
+            </button>
+          </div>
+          <div class="lg:col-span-1 space-y-4">
+            <div class="bg-white dark:bg-slate-900 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-slate-800 sticky top-24">
+              <h2 class="text-lg font-bold mb-4 text-tech-800 dark:text-tech-400 border-b border-gray-200 dark:border-slate-700 pb-2">
+              ⚡ 快速情境 (Presets)
+              </h2>
+              <div class="space-y-3">
+                <button onclick="applyPreset('dry')" class="w-full text-left px-4 py-3 rounded-lg bg-gray-50 dark:bg-slate-800 hover:bg-tech-100 dark:hover:bg-slate-700 border border-transparent hover:border-tech-400 transition group">
+                <div class="font-bold text-sm text-gray-700 dark:text-gray-200 group-hover:text-tech-600 dark:group-hover:text-tech-400">🎤 人聲偏乾</div>
+                <div class="text-xs text-gray-500">增加 Echo 填補空隙感</div>
+                </button>
+                <button onclick="applyPreset('tutorial')" class="w-full text-left px-4 py-3 rounded-lg bg-gray-50 dark:bg-slate-800 hover:bg-tech-100 dark:hover:bg-slate-700 border border-transparent hover:border-tech-400 transition group">
+                <div class="font-bold text-sm text-gray-700 dark:text-gray-200 group-hover:text-tech-600 dark:group-hover:text-tech-400">📚 教學影片內容</div>
+                <div class="text-xs text-gray-500">清晰化，中等降噪，微量 Echo</div>
+                </button>
+                <button onclick="applyPreset('bass')" class="w-full text-left px-4 py-3 rounded-lg bg-gray-50 dark:bg-slate-800 hover:bg-tech-100 dark:hover:bg-slate-700 border border-transparent hover:border-tech-400 transition group">
+                <div class="font-bold text-sm text-gray-700 dark:text-gray-200 group-hover:text-tech-600 dark:group-hover:text-tech-400">🥁 增加音樂重低音</div>
+                <div class="text-xs text-gray-500">降低 Highpass 頻率保留低頻</div>
+                </button>
+                <button onclick="applyPreset('denoise_only')" class="w-full text-left px-4 py-3 rounded-lg bg-gray-50 dark:bg-slate-800 hover:bg-tech-100 dark:hover:bg-slate-700 border border-transparent hover:border-tech-400 transition group">
+                <div class="font-bold text-sm text-gray-700 dark:text-gray-200 group-hover:text-tech-600 dark:group-hover:text-tech-400">🔇 只進行降噪</div>
+                <div class="text-xs text-gray-500">關閉 Highpass/Echo/Norm</div>
+                </button>
+                <button onclick="applyPreset('no_echo')" class="w-full text-left px-4 py-3 rounded-lg bg-gray-50 dark:bg-slate-800 hover:bg-tech-100 dark:hover:bg-slate-700 border border-transparent hover:border-tech-400 transition group">
+                <div class="font-bold text-sm text-gray-700 dark:text-gray-200 group-hover:text-tech-600 dark:group-hover:text-tech-400">🚫 關閉 Echo</div>
+                <div class="text-xs text-gray-500">保留降噪與標準化</div>
+                </button>
+                <button onclick="applyPreset('off')" class="w-full text-left px-4 py-3 rounded-lg border border-red-200 dark:border-red-900/30 bg-red-50 dark:bg-red-900/10 hover:bg-red-100 dark:hover:bg-red-900/30 transition group">
+                <div class="font-bold text-sm text-red-700 dark:text-red-400">🛑 完全關閉音效</div>
+                <div class="text-xs text-red-400 dark:text-red-500">只剪輯，不做任何處理</div>
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
-
-        <div class="mt-8 bg-black text-green-400 p-4 rounded-xl font-mono text-sm h-48 overflow-y-auto border border-gray-700 shadow-inner" id="console-output">
-            <span class="opacity-50">// 系統就緒...</span><br>
-            <span class="opacity-50">// 等待指令...</span>
+      </div>
+      <div id="tab-whisper-content" class="hidden">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          
+          <div class="bg-white dark:bg-slate-900 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-slate-800">
+            <div class="flex items-center gap-3 mb-4 border-b border-gray-200 dark:border-slate-700 pb-3">
+              <div class="bg-tech-500 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold">1</div>
+              <h2 class="text-lg font-bold text-tech-800 dark:text-tech-400">音訊提取 (Pre-process)</h2>
+            </div>
+            <form id="extract-form" class="space-y-4">
+              <div>
+                <label class="block text-sm font-medium mb-1">輸入影片 (Input Video)</label>
+                <input type="text" id="extract_input" name="input_video" required placeholder="C:/Videos/raw_video.mp4" class="mono w-full bg-gray-50 dark:bg-slate-950 border border-gray-300 dark:border-slate-700 rounded px-3 py-2 focus:ring-2 focus:ring-tech-400 outline-none transition-colors">
+              </div>
+              <button type="button" onclick="submitExtract()" class="w-full py-3 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded-lg transition-colors flex justify-center items-center gap-2">
+              <span>🎵 轉換為單聲道 MP3 (16kHz)</span>
+              </button>
+            </form>
+            <p class="text-xs text-gray-500 mt-3 bg-gray-100 dark:bg-slate-800 p-2 rounded">
+              指令範例: <code class="mono">ffmpeg -i input.mp4 -ar 16000 -ac 1 -ab 16k output.mp3</code>
+            </p>
+          </div>
+          <div class="bg-white dark:bg-slate-900 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-slate-800">
+            <div class="flex items-center gap-3 mb-4 border-b border-gray-200 dark:border-slate-700 pb-3">
+              <div class="bg-tech-500 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold">2</div>
+              <h2 class="text-lg font-bold text-tech-800 dark:text-tech-400">生成字幕 (Whisper AI)</h2>
+            </div>
+            
+            <form id="whisper-form" class="space-y-4">
+              <div>
+                <label class="block text-sm font-medium mb-1">輸入音訊 (Input MP3)</label>
+                <input type="text" id="whisper_input" name="input_mp3" required placeholder="C:/Videos/raw_video.mp3" class="mono w-full bg-gray-50 dark:bg-slate-950 border border-gray-300 dark:border-slate-700 rounded px-3 py-2 focus:ring-2 focus:ring-tech-400 outline-none transition-colors">
+              </div>
+              <div class="grid grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-sm font-medium mb-1">語言 (Language)</label>
+                  <input type="text" name="language" value="zh" class="w-full bg-gray-50 dark:bg-slate-950 border border-gray-300 dark:border-slate-700 rounded px-3 py-2 focus:ring-tech-400">
+                </div>
+                <div>
+                  <label class="block text-sm font-medium mb-1">硬體加速 (Device)</label>
+                  <div class="relative">
+                    <select name="device" class="appearance-none w-full bg-gray-50 dark:bg-slate-950 border border-gray-300 dark:border-slate-700 rounded px-3 py-2 focus:ring-tech-400 cursor-pointer">
+                      <option value="cpu" selected>CPU (預設)</option>
+                      <option value="cuda">GPU (CUDA)</option>
+                    </select>
+                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">▼</div>
+                  </div>
+                </div>
+              </div>
+              <div>
+                <label class="block text-sm font-medium mb-1">模型大小 (Model)</label>
+                <div class="relative">
+                  <select name="model" class="appearance-none w-full bg-gray-50 dark:bg-slate-950 border border-gray-300 dark:border-slate-700 rounded px-3 py-2 focus:ring-tech-400 cursor-pointer">
+                    <option value="tiny">Tiny (最快/不準)</option>
+                    <option value="base" selected>Base (平衡)</option>
+                    <option value="small">Small</option>
+                    <option value="medium">Medium</option>
+                    <option value="large">Large (最慢/精準)</option>
+                    <option value="turbo">Turbo</option>
+                  </select>
+                  <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">▼</div>
+                </div>
+              </div>
+              <div>
+                <label class="block text-sm font-medium mb-2">輸出格式 (Output Formats)</label>
+                <div class="grid grid-cols-3 gap-2">
+                  <label class="cursor-pointer flex items-center gap-2">
+                    <input type="checkbox" name="output_formats" value="srt" checked class="check-box hidden">
+                    <div class="w-4 h-4 border border-gray-400 rounded flex items-center justify-center transition-colors"></div>
+                    <span class="text-sm">srt</span>
+                  </label>
+                  <label class="cursor-pointer flex items-center gap-2">
+                    <input type="checkbox" name="output_formats" value="vtt" class="check-box hidden">
+                    <div class="w-4 h-4 border border-gray-400 rounded flex items-center justify-center transition-colors"></div>
+                    <span class="text-sm">vtt</span>
+                  </label>
+                  <label class="cursor-pointer flex items-center gap-2">
+                    <input type="checkbox" name="output_formats" value="txt" class="check-box hidden">
+                    <div class="w-4 h-4 border border-gray-400 rounded flex items-center justify-center transition-colors"></div>
+                    <span class="text-sm">txt</span>
+                  </label>
+                  <label class="cursor-pointer flex items-center gap-2">
+                    <input type="checkbox" name="output_formats" value="json" class="check-box hidden">
+                    <div class="w-4 h-4 border border-gray-400 rounded flex items-center justify-center transition-colors"></div>
+                    <span class="text-sm">json</span>
+                  </label>
+                  <label class="cursor-pointer flex items-center gap-2">
+                    <input type="checkbox" name="output_formats" value="tsv" class="check-box hidden">
+                    <div class="w-4 h-4 border border-gray-400 rounded flex items-center justify-center transition-colors"></div>
+                    <span class="text-sm">tsv</span>
+                  </label>
+                  <label class="cursor-pointer flex items-center gap-2">
+                    <input type="checkbox" name="output_formats" value="all" class="check-box hidden">
+                    <div class="w-4 h-4 border border-gray-400 rounded flex items-center justify-center transition-colors"></div>
+                    <span class="text-sm">All</span>
+                  </label>
+                </div>
+              </div>
+              <button type="button" onclick="submitWhisper()" class="w-full py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold rounded-xl shadow-lg transform hover:scale-[1.01] transition-all flex justify-center items-center gap-2">
+              <span>✨ 開始生成字幕</span>
+              </button>
+            </form>
+          </div>
         </div>
-
+      </div>
+      <div class="mt-8 bg-black text-green-400 p-4 rounded-xl font-mono text-sm h-48 overflow-y-auto border border-gray-700 shadow-inner" id="console-output">
+        <span class="opacity-50">// 系統就緒...</span><br>
+        <span class="opacity-50">// 等待指令...</span>
+      </div>
+      <!-- Footer -->
+      <footer class="footer">
+        <p>安裝 ffmpeg, Whisper 教學：<a href='https://max-everyday.com/2025/12/whisper-python/'>網頁圖文教學</a>、<a href='https://youtu.be/mJXUCLYjhmg'>YouTube 影片</a>
+        </p>
+      </footer>
     </main>
-
-    <script>
-        // --- Theme Logic ---
-        const html = document.documentElement;
-        document.getElementById('theme-toggle').addEventListener('click', () => {
-            html.classList.toggle('dark');
-            document.getElementById('theme-icon').textContent = html.classList.contains('dark') ? '🌙' : '🌞';
-        });
-
-        // --- Tab Logic ---
-        function switchTab(tabName) {
-            const cutterContent = document.getElementById('tab-cutter-content');
-            const whisperContent = document.getElementById('tab-whisper-content');
-            const btnCutter = document.getElementById('tab-btn-cutter');
-            const btnWhisper = document.getElementById('tab-btn-whisper');
-
-            if (tabName === 'cutter') {
-                cutterContent.classList.remove('hidden');
-                cutterContent.classList.add('block');
-                whisperContent.classList.remove('block');
-                whisperContent.classList.add('hidden');
-
-                // Style updates
-                btnCutter.classList.add('border-tech-500', 'text-tech-600', 'dark:text-tech-400');
-                btnCutter.classList.remove('border-transparent', 'text-gray-400');
-                
-                btnWhisper.classList.remove('border-tech-500', 'text-tech-600', 'dark:text-tech-400');
-                btnWhisper.classList.add('border-transparent', 'text-gray-400');
-            } else {
-                cutterContent.classList.remove('block');
-                cutterContent.classList.add('hidden');
-                whisperContent.classList.remove('hidden');
-                whisperContent.classList.add('block');
-
-                // Style updates
-                btnWhisper.classList.add('border-purple-500', 'text-purple-600', 'dark:text-purple-400');
-                btnWhisper.classList.remove('border-transparent', 'text-gray-400');
-                
-                btnCutter.classList.remove('border-tech-500', 'text-tech-600', 'dark:text-tech-400');
-                btnCutter.classList.add('border-transparent', 'text-gray-400');
-            }
-        }
-
-        // --- Console Helper ---
-        function log(msg, type='info') {
-            const c = document.getElementById('console-output');
-            let color = 'text-green-400';
-            if (type === 'error') color = 'text-red-500';
-            if (type === 'warn') color = 'text-yellow-400';
-            if (type === 'cmd') color = 'text-cyan-300';
-            
-            c.innerHTML += `<br><span class="${color}">> ${msg}</span>`;
-            c.scrollTop = c.scrollHeight;
-        }
-
-        // --- API: Cutter ---
-        async function submitCutter() {
-            const form = document.getElementById('cutter-form');
-            const formData = new FormData(form);
-            if (!formData.get('input_file')) { alert('請輸入影片路徑！'); return; }
-            
-            log("發送剪輯指令...", 'warn');
-            try {
-                const res = await fetch('/run', { method: 'POST', body: formData });
-                const data = await res.json();
-                if (data.status === 'success') {
-                    log(`指令: ${data.command}`, 'cmd');
-                    log(data.message);
-                } else {
-                    log(data.message, 'error');
-                }
-            } catch (e) { log(e, 'error'); }
-        }
-
-        // --- API: Extract Audio ---
-        async function submitExtract() {
-            const form = document.getElementById('extract-form');
-            const formData = new FormData(form);
-            const videoPath = formData.get('input_video');
-            if (!videoPath) { alert('請輸入影片路徑！'); return; }
-
-            log("開始轉檔 MP3...", 'warn');
-            try {
-                const res = await fetch('/extract-audio', { method: 'POST', body: formData });
-                const data = await res.json();
-                if (data.status === 'success') {
-                    log(`指令: ${data.command}`, 'cmd');
-                    log(data.message);
-                    // Auto-fill next step
-                    document.getElementById('whisper_input').value = data.output_path;
-                    log("已自動填入下一步驟的輸入路徑。", 'warn');
-                } else {
-                    log(data.message, 'error');
-                }
-            } catch (e) { log(e, 'error'); }
-        }
-
-        // --- API: Whisper ---
-        async function submitWhisper() {
-            const form = document.getElementById('whisper-form');
-            const formData = new FormData(form);
-            
-            // Handle checkboxes manually for FormData
-            const formats = [];
-            document.querySelectorAll('input[name="output_formats"]:checked').forEach(cb => {
-                formats.push(cb.value);
-            });
-
-            if (formats.length === 0) {
-                alert('請至少選擇一種輸出格式 (如 srt)！');
-                return;
-            }
-            if (!formData.get('input_mp3')) {
-                alert('請輸入音訊檔案路徑！');
-                return;
-            }
-
-            // Append list as comma string
-            formData.set('output_formats', formats.join(','));
-
-            log("啟動 Whisper AI...", 'warn');
-            try {
-                const res = await fetch('/run-whisper', { method: 'POST', body: formData });
-                const data = await res.json();
-                if (data.status === 'success') {
-                    log(`指令: ${data.command}`, 'cmd');
-                    log(data.message);
-                } else {
-                    log(data.message, 'error');
-                }
-            } catch (e) { log(e, 'error'); }
-        }
-
-        // --- Presets Logic (Existing) ---
-        const inputs = {
-            hp: document.getElementById('highpass'),
-            nr: document.getElementById('afftdn'),
-            echo: document.getElementById('aecho'),
-            ne: document.getElementById('speechnorm_e'),
-            np: document.getElementById('speechnorm_p'),
-        };
-        const presets = {
-            dry: { hp: 80, nr: 12, echo: '0.8:0.4:50:0.3', ne: 4, np: 0.9 },
-            tutorial: { hp: 100, nr: 12, echo: '0.8:0.3:40:0.2', ne: 4, np: 0.9 },
-            bass: { hp: 20, nr: 10, echo: '0.8:0.3:40:0.2', ne: 4, np: 0.9 },
-            denoise_only: { hp: 0, nr: 15, echo: 'None', ne: 0, np: 0 },
-            no_echo: { hp: 80, nr: 12, echo: 'None', ne: 4, np: 0.9 },
-            off: { hp: 0, nr: 0, echo: 'None', ne: 0, np: 0 },
-        };
-        function applyPreset(name) {
-            const p = presets[name];
-            if (!p) return;
-            inputs.hp.value = p.hp; inputs.nr.value = p.nr; inputs.echo.value = p.echo; inputs.ne.value = p.ne; inputs.np.value = p.np;
-            const form = document.getElementById('cutter-form');
-            form.classList.add('ring-2', 'ring-tech-400');
-            setTimeout(() => form.classList.remove('ring-2', 'ring-tech-400'), 200);
-        }
-    </script>
-</body>
+    <script src="static/app.js"></script>
+  </body>
 </html>

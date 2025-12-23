@@ -1,0 +1,25 @@
+/* CSS Variables */
+body { font-family: 'Noto Sans TC', sans-serif; }
+.mono { font-family: 'JetBrains Mono', monospace; }
+.glass {
+background: rgba(19, 78, 74, 0.4);
+backdrop-filter: blur(8px);
+border: 1px solid rgba(45, 212, 191, 0.2);
+}
+.dark .glass {
+background: rgba(4, 47, 46, 0.7);
+border: 1px solid rgba(45, 212, 191, 0.1);
+}
+/* Custom Checkbox */
+.check-box:checked + div {
+background-color: #0d9488;
+border-color: #0d9488;
+}
+/* Footer */
+.footer {
+  padding: 2rem;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  border-top: 1px solid var(--border-color);
+}
