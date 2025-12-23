@@ -22,6 +22,9 @@
     * **FFT Denoise**：基於頻譜的背景降噪算法。
     * **Auto Echo**：為過乾的錄音室人聲添加微量延遲與殘響，提升聽感自然度。
     * **Speech Normalization**：動態調整人聲音量，確保整體響度一致。
+* **🎛️ 整合外部 whisper 指令 **：
+    * **轉檔**：來源檔案轉換為單聲道 MP3 (16kHz)。
+    * **生成字幕**：圖形化介面設定常用參數。
 * **💻 現代化介面 (Web Interface)**：
     * 基於 **FastAPI** 構建的高效後端。
     * 支援 **深色 (Dark)** / **淺色 (Light)** 主題切換。
@@ -41,6 +44,10 @@
     * **Windows**: 下載編譯好的執行檔，並將 `bin` 資料夾路徑加入系統環境變數 (System PATH)。
     * **Mac**: ```bash brew install ffmpeg```
     * **Linux**: ```bash sudo apt install ffmpeg```
+* **Whisper**
+    * 請確保你的電腦環境已經安裝了 openai-whisper: ```pip install openai-whisper```
+
+    (注意：Whisper 需要 PyTorch，如果你有 NVIDIA 顯卡並希望使用 GPU 加速，請務必安裝對應 CUDA 版本的 PyTorch)
 
 ### 2. 下載專案 (Clone Project)
 
@@ -48,10 +55,10 @@
 
 ```bash
 # 下載專案代碼
-git clone [https://github.com/your-username/ai-video-cutter.git](https://github.com/your-username/ai-video-cutter.git)
+git clone https://github.com/max32002/srt-video-cutter.git
 
 # 進入專案目錄
-cd ai-video-cutter
+cd srt-video-cutter
 ```
 
 ### 3. 安裝依賴套件 (Install Dependencies)
@@ -93,6 +100,9 @@ ai-video-cutter/
 ├── README.md              # 專案說明文件
 └── templates/             # 前端頁面資料夾
     └── index.html         # Web UI 介面 (HTML/Tailwind CSS/JS)
+└── static/                # 前端頁面靜態資源資料夾
+    ├── app.js             # javascript
+    └── style.css          # css
 ```
 
 ---
@@ -184,11 +194,6 @@ python clip_cutter.py "video.mp4" --srt "subs.srt" --highpass 100 --afftdn 15 --
     * 若剪輯結果有偏差，可調整 `padding` (緩衝時間) 參數，預設為 `0.15` 秒。
 
 ---
-
-## 🤝 貢獻 (Contributing)
-
-歡迎提交 Pull Request 或 Issue！
-如果你發現了 Bug 或有新的功能建議（例如支援 GPU 加速、更強的 AI 降噪模型），請隨時提出。
 
 ## 📄 License
 
