@@ -31,6 +31,15 @@
     * **情境預設 (Presets)**：內建「教學」、「Vlog」、「純降噪」等參數模組。
 * **🚀 雙模式執行**：同時支援 Web UI 操作與 CLI (Command Line) 自動化腳本。
 
+
+---
+
+## 💻 執行畫面 (Screenshot)
+
+![Video Cutter](https://github.com/max32002/srt-video-cutter/raw/main/screenshot/cutter.jpg)
+
+![Whisper](https://github.com/max32002/srt-video-cutter/raw/main/screenshot/whisper.jpg)
+
 ---
 
 ## 📥 下載與安裝 (Installation)
