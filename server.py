@@ -14,6 +14,10 @@ from typing import List
 
 from faster_whisper import WhisperModel
 from contextlib import ExitStack
+from opencc import OpenCC
+
+# --- 在檔案上方定義版本號 ---
+VERSION = "1.0.0"
 
 app = FastAPI()
 
@@ -70,15 +74,26 @@ def build_subtitle_blocks(text: str, max_line_len=22, max_lines=2):
 
 def run_faster_whisper_task(
     input_file: str, 
-    language: str, 
+    language: Form("zh"), 
     model_size: str, 
     device: str, 
     output_formats: List[str],
+    opencc_config: str = "s2twp",
+    min_silence_duration_ms: int = 500,
+    max_speech_duration_s: int = 15,
+    speech_pad_ms: int = 400,
+    beam_size: int = 5,
+    no_speech_threshold: float = 0.6,
     max_line_len: int = 22
 ):
     try:
         print(f"--- 開始處理: {input_file} (Device: {device}, Model: {model_size}) ---")
         
+        # 初始化 OpenCC (如果需要轉換)
+        converter = None
+        if opencc_config and opencc_config != "none":
+            converter = OpenCC(opencc_config)
+
         compute_type = "float16" if device == "cuda" else "int8"
         model = WhisperModel(model_size, device=device, compute_type=compute_type)
 
@@ -91,14 +106,16 @@ def run_faster_whisper_task(
             condition_on_previous_text=False,
             # 縮短靜音判定，強制切分
             vad_parameters=dict(
-                min_silence_duration_ms=300,  # 只要停頓 0.3 秒就切斷
-                max_speech_duration_s=3,     # 強制每一段話最長不能超過 4 秒
-                speech_pad_ms=200             # 減少片段前后的緩衝音
+                min_silence_duration_ms=min_silence_duration_ms,
+                max_speech_duration_s=max_speech_duration_s,
+                speech_pad_ms=speech_pad_ms
             ),
             # beam_size 設小一點有助於減少模型過度延伸的幻覺
-            beam_size=5,
+            beam_size=beam_size,
+            log_prob_threshold=-1.0,
+            compression_ratio_threshold=2.4,
             # 提高對無聲的判定標準，避免抓到底噪
-            no_speech_threshold=0.6,
+            no_speech_threshold=no_speech_threshold,
         )
 
         base_name = os.path.splitext(input_file)[0]
@@ -127,6 +144,10 @@ def run_faster_whisper_task(
 
                 if not text:
                     continue
+
+                # 執行繁簡轉換
+                if converter:
+                    text = converter.convert(text)
 
                 blocks = build_subtitle_blocks(
                     text,
@@ -163,7 +184,10 @@ def run_faster_whisper_task(
 
 @app.get("/")
 async def read_root(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
+    return templates.TemplateResponse("index.html", {
+            "request": request, 
+            "version": VERSION
+        })
 
 @app.post("/run")
 async def run_cutter(
@@ -277,7 +301,14 @@ async def run_whisper(
     language: str = Form("zh"),
     model: str = Form("base"),
     device: str = Form("cpu"),
-    output_formats: str = Form(...) 
+    output_formats: str = Form(...),
+    opencc_config: str = Form("s2twp"), # 簡轉繁
+    # --- 新增接收前端傳來的 VAD 參數 ---
+    min_silence_duration_ms: int = Form(300),
+    max_speech_duration_s: int = Form(3),
+    speech_pad_ms: int = Form(200),
+    beam_size: int = Form(5),
+    no_speech_threshold: float = Form(0.6)
 ):
     """
     呼叫 Faster-Whisper 進行高效能辨識
@@ -296,7 +327,12 @@ async def run_whisper(
         language, 
         model, 
         device, 
-        formats_list
+        formats_list,
+        min_silence_duration_ms=min_silence_duration_ms,
+        max_speech_duration_s=max_speech_duration_s,
+        speech_pad_ms=speech_pad_ms,
+        beam_size=beam_size,
+        no_speech_threshold=no_speech_threshold
     )
 
     return JSONResponse({
@@ -306,4 +342,9 @@ async def run_whisper(
 
 
 if __name__ == "__main__":
+    # 在啟動前印出漂亮的啟動資訊
+    print("\n" + "="*30)
+    print(f" AI Video Suite")
+    print(f" Version: {VERSION}")
+    print("="*30 + "\n")
     uvicorn.run(app, host="127.0.0.1", port=8000)

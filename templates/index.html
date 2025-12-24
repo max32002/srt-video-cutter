@@ -7,31 +7,32 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
     tailwind.config = {
-      darkMode: 'class',
-      theme: {
-        extend: {
-          colors: {
-            tech: {
-              50: '#f0fdfa',
-              100: '#ccfbf1',
-              400: '#2dd4bf',
-              500: '#14b8a6',
-              600: '#0d9488',
-              700: '#0f766e',
-              800: '#115e59',
-              900: '#134e4a',
-              950: '#042f2e',
-            },
-            neon: '#00f3ff'
-          }
-        }
-      }
+    darkMode: 'class',
+    theme: {
+    extend: {
+    colors: {
+    tech: {
+    50: '#f0fdfa',
+    100: '#ccfbf1',
+    400: '#2dd4bf',
+    500: '#14b8a6',
+    600: '#0d9488',
+    700: '#0f766e',
+    800: '#115e59',
+    900: '#134e4a',
+    950: '#042f2e',
+    },
+    neon: '#00f3ff'
+    }
+    }
+    }
     }
     </script>
     <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+TC:wght@400;700&display=swap');
     </style>
     <link rel="stylesheet" href="/static/styles.css" />
+    <link rel="icon" type="image/png" href="/static/srt-video-cutter-icon-64.png">
   </head>
   <body class="bg-gray-100 text-gray-800 dark:bg-slate-950 dark:text-gray-200 transition-colors duration-300 min-h-screen flex flex-col">
     <nav class="w-full p-4 border-b border-gray-300 dark:border-slate-800 flex justify-between items-center bg-white/80 dark:bg-slate-900/80 backdrop-blur sticky top-0 z-50">
@@ -54,7 +55,7 @@
       </div>
     </div>
     <main class="flex-grow container mx-auto p-4 md:p-8 max-w-5xl">
-       
+      
       <div id="tab-cutter-content" class="block">
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div class="lg:col-span-2 space-y-6">
@@ -92,7 +93,6 @@
                   <label class="block text-sm font-medium mb-1">Lowpass Freq (Hz)</label>
                   <input type="number" id="lowpass" form="cutter-form" name="lowpass" value="8000" class="w-full bg-gray-50 dark:bg-slate-950 border border-gray-300 dark:border-slate-700 rounded px-3 py-2 focus:ring-tech-400 transition-colors">
                 </div>
-
                 <div class="group">
                   <label class="block text-sm font-medium mb-1">FFT Denoise (dB)</label>
                   <input type="number" id="afftdn" form="cutter-form" name="afftdn" value="12" class="w-full bg-gray-50 dark:bg-slate-950 border border-gray-300 dark:border-slate-700 rounded px-3 py-2 focus:ring-tech-400 transition-colors">
@@ -101,7 +101,6 @@
                   <label class="block text-sm font-medium mb-1">Echo (In:Out:Delay:Decay)</label>
                   <input type="text" id="aecho" form="cutter-form" name="aecho" value="0.8:0.3:40:0.2" class="mono w-full bg-gray-50 dark:bg-slate-950 border border-gray-300 dark:border-slate-700 rounded px-3 py-2 focus:ring-tech-400 transition-colors">
                 </div>
-
                 <div class="group">
                   <label class="block text-sm font-medium mb-1">Norm Expansion (e)</label>
                   <input type="number" id="speechnorm_e" form="cutter-form" name="speechnorm_e" value="4" class="w-full bg-gray-50 dark:bg-slate-950 border border-gray-300 dark:border-slate-700 rounded px-3 py-2 focus:ring-tech-400 transition-colors">
@@ -112,7 +111,7 @@
                 </div>
               </div>
             </div>
-             
+            
             <button type="button" onclick="submitCutter()" class="w-full py-4 bg-gradient-to-r from-teal-600 to-blue-600 hover:from-teal-500 hover:to-blue-500 text-white font-bold rounded-xl shadow-lg transform hover:scale-[1.01] transition-all flex justify-center items-center gap-2">
             <span>🚀 開始執行剪輯</span>
             </button>
@@ -154,7 +153,7 @@
       </div>
       <div id="tab-whisper-content" class="hidden">
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-           
+          
           <div class="bg-white dark:bg-slate-900 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-slate-800">
             <div class="flex items-center gap-3 mb-4 border-b border-gray-200 dark:border-slate-700 pb-3">
               <div class="bg-tech-500 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold">1</div>
@@ -178,7 +177,7 @@
               <div class="bg-tech-500 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold">2</div>
               <h2 class="text-lg font-bold text-tech-800 dark:text-tech-400">生成字幕 (Whisper AI)</h2>
             </div>
-             
+            
             <form id="whisper-form" class="space-y-4">
               <div>
                 <label class="block text-sm font-medium mb-1">輸入音訊 (Input MP3)</label>
@@ -187,7 +186,77 @@
               <div class="grid grid-cols-2 gap-4">
                 <div>
                   <label class="block text-sm font-medium mb-1">語言 (Language)</label>
-                  <input type="text" name="language" value="zh" class="w-full bg-gray-50 dark:bg-slate-950 border border-gray-300 dark:border-slate-700 rounded px-3 py-2 focus:ring-tech-400">
+                  <div class="relative">
+                    <select name="language" class="appearance-none w-full bg-gray-50 dark:bg-slate-950 border border-gray-300 dark:border-slate-700 rounded px-3 py-2 focus:ring-tech-400 cursor-pointer">
+                      <option value="zh" selected>中文 (Chinese/zh)</option>
+                      <option value="en">英文 (English/en)</option>
+                      <option value="ja">日文 (Japanese/ja)</option>
+                      <option value="ko">韓文 (Korean/ko)</option>
+                      <option value="yue">粵語 (Cantonese/yue)</option>
+                      <hr>
+                      <option value="af">南非荷蘭文 (Afrikaans/af)</option>
+                      <option value="am">阿姆哈拉文 (Amharic/am)</option>
+                      <option value="ar">阿拉伯文 (Arabic/ar)</option>
+                      <option value="as">阿薩姆文 (Assamese/as)</option>
+                      <option value="az">亞塞拜然文 (Azerbaijani/az)</option>
+                      <option value="be">白俄羅斯文 (Belarusian/be)</option>
+                      <option value="bg">保加利亞文 (Bulgarian/bg)</option>
+                      <option value="bn">孟加拉文 (Bengali/bn)</option>
+                      <option value="bo">藏文 (Tibetan/bo)</option>
+                      <option value="ca">加泰隆尼亞文 (Catalan/ca)</option>
+                      <option value="cs">捷克文 (Czech/cs)</option>
+                      <option value="cy">威爾斯文 (Welsh/cy)</option>
+                      <option value="da">丹麥文 (Danish/da)</option>
+                      <option value="de">德文 (German/de)</option>
+                      <option value="el">希臘文 (Greek/el)</option>
+                      <option value="es">西班牙文 (Spanish/es)</option>
+                      <option value="et">愛沙尼亞文 (Estonian/et)</option>
+                      <option value="eu">巴斯克文 (Basque/eu)</option>
+                      <option value="fa">波斯文 (Persian/fa)</option>
+                      <option value="fi">芬蘭文 (Finnish/fi)</option>
+                      <option value="fr">法文 (French/fr)</option>
+                      <option value="gl">加利西亞文 (Galician/gl)</option>
+                      <option value="gu">古吉拉特文 (Gujarati/gu)</option>
+                      <option value="he">希伯來文 (Hebrew/he)</option>
+                      <option value="hi">印地文 (Hindi/hi)</option>
+                      <option value="hr">克羅埃西亞文 (Croatian/hr)</option>
+                      <option value="hu">匈牙利文 (Hungarian/hu)</option>
+                      <option value="hy">亞美尼亞文 (Armenian/hy)</option>
+                      <option value="id">印尼文 (Indonesian/id)</option>
+                      <option value="is">冰島文 (Icelandic/is)</option>
+                      <option value="it">義大利文 (Italian/it)</option>
+                      <option value="kn">坎那達文 (Kannada/kn)</option>
+                      <option value="la">拉丁文 (Latin/la)</option>
+                      <option value="lt">立陶宛文 (Lithuanian/lt)</option>
+                      <option value="lv">拉脫維亞文 (Latvian/lv)</option>
+                      <option value="mi">毛利文 (Maori/mi)</option>
+                      <option value="ml">馬拉雅拉姆文 (Malayalam/ml)</option>
+                      <option value="mr">馬拉地文 (Marathi/mr)</option>
+                      <option value="ms">馬來文 (Malay/ms)</option>
+                      <option value="ne">尼泊爾文 (Nepali/ne)</option>
+                      <option value="nl">荷蘭文 (Dutch/nl)</option>
+                      <option value="no">挪威文 (Norwegian/no)</option>
+                      <option value="pa">旁遮普文 (Punjabi/pa)</option>
+                      <option value="pl">波蘭文 (Polish/pl)</option>
+                      <option value="pt">葡萄牙文 (Portuguese/pt)</option>
+                      <option value="ro">羅馬尼亞文 (Romanian/ro)</option>
+                      <option value="ru">俄文 (Russian/ru)</option>
+                      <option value="sk">斯洛伐克文 (Slovak/sk)</option>
+                      <option value="sl">斯洛維尼亞文 (Slovenian/sl)</option>
+                      <option value="sr">塞爾維亞文 (Serbian/sr)</option>
+                      <option value="sv">瑞典文 (Swedish/sv)</option>
+                      <option value="sw">史瓦希利文 (Swahili/sw)</option>
+                      <option value="ta">坦米爾文 (Tamil/ta)</option>
+                      <option value="te">泰盧固文 (Telugu/te)</option>
+                      <option value="th">泰文 (Thai/th)</option>
+                      <option value="tl">塔加洛文 (Tagalog/tl)</option>
+                      <option value="tr">土耳其文 (Turkish/tr)</option>
+                      <option value="uk">烏克蘭文 (Ukrainian/uk)</option>
+                      <option value="ur">烏爾都文 (Urdu/ur)</option>
+                      <option value="vi">越南文 (Vietnamese/vi)</option>
+                    </select>
+                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">▼</div>
+                  </div>
                 </div>
                 <div>
                   <label class="block text-sm font-medium mb-1">硬體加速 (Device)</label>
@@ -249,22 +318,114 @@
                   </label>
                 </div>
               </div>
-              <button type="button" onclick="submitWhisper()" class="w-full py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold rounded-xl shadow-lg transform hover:scale-[1.01] transition-all flex justify-center items-center gap-2">
+              <div>
+                <label class="block text-sm font-medium mb-1">繁簡轉換 (OpenCC)</label>
+                <div class="relative">
+                  <select name="opencc_config" class="appearance-none w-full bg-gray-50 dark:bg-slate-950 border border-gray-300 dark:border-slate-700 rounded px-3 py-2 focus:ring-tech-400 cursor-pointer">
+                    <option value="none">不轉換</option>
+                    <option value="s2t">s2t：簡體到繁體</option>
+                    <option value="t2s">t2s：繁體到簡體</option>
+                    <option value="s2tw">s2tw：簡體到台灣正體</option>
+                    <option value="s2twp" selected>s2twp：簡體到台灣正體 (常用詞彙轉換)</option>
+                  </select>
+                  <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">▼</div>
+                </div>
+              </div>
+              <div class="mt-6 pt-4 border-t border-dashed border-gray-300 dark:border-slate-700">
+                <h3 class="text-xs font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                <span class="w-1.5 h-1.5 bg-purple-500 rounded-full"></span> Faster-Whisper VAD 最佳化
+                </h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-purple-50/50 dark:bg-purple-900/10 p-4 rounded-lg">
+                  <div>
+                    <label class="block text-xs font-medium mb-1 text-gray-600 dark:text-gray-400">最小停頓 (min_silence_ms)</label>
+                    <input type="number" name="min_silence_duration_ms" value="500"
+                    class="w-full bg-white dark:bg-slate-950 border border-gray-300 dark:border-slate-700 rounded px-3 py-1.5 text-sm focus:ring-purple-400 outline-none transition-colors">
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium mb-1 text-gray-600 dark:text-gray-400">最長語音 (max_speech_s)</label>
+                    <input type="number" name="max_speech_duration_s" value="15"
+                    class="w-full bg-white dark:bg-slate-950 border border-gray-300 dark:border-slate-700 rounded px-3 py-1.5 text-sm focus:ring-purple-400 outline-none transition-colors">
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium mb-1 text-gray-600 dark:text-gray-400">前後緩衝 (speech_pad_ms)</label>
+                    <input type="number" name="speech_pad_ms" value="400"
+                    class="w-full bg-white dark:bg-slate-950 border border-gray-300 dark:border-slate-700 rounded px-3 py-1.5 text-sm focus:ring-purple-400 outline-none transition-colors">
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium mb-1 text-gray-600 dark:text-gray-400">束搜尋 (beam_size)</label>
+                    <input type="number" name="beam_size" value="5"
+                    class="w-full bg-white dark:bg-slate-950 border border-gray-300 dark:border-slate-700 rounded px-3 py-1.5 text-sm focus:ring-purple-400 outline-none transition-colors">
+                  </div>
+                  <div class="md:col-span-2">
+                    <label class="block text-xs font-medium mb-1 text-gray-600 dark:text-gray-400">無聲判定門檻 (no_speech_threshold)</label>
+                    <div class="flex items-center gap-3">
+                      <input type="range" name="no_speech_threshold" min="0" max="1" step="0.1" value="0.6"
+                      oninput="this.nextElementSibling.value = this.value"
+                      class="flex-grow accent-purple-600 cursor-pointer">
+                      <output class="mono text-sm w-8 text-purple-600 font-bold">0.6</output>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <button type="button" onclick="submitWhisper()" class="w-full py-4 mt-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold rounded-xl shadow-lg transform hover:scale-[1.01] transition-all flex justify-center items-center gap-2">
               <span>✨ 開始生成字幕</span>
               </button>
             </form>
           </div>
         </div>
       </div>
-      <div class="mt-8 bg-black text-green-400 p-4 rounded-xl font-mono text-sm h-48 overflow-y-auto border border-gray-700 shadow-inner" id="console-output">
-        <span class="opacity-50">// 系統就緒...</span><br>
-        <span class="opacity-50">// 等待指令...</span>
+      <div class="mt-8">
+        <div class="flex justify-between items-center mb-2">
+          <h2 class="text-sm font-bold text-gray-500 dark:text-gray-400 mono italic flex items-center gap-2">
+          <span class="w-2 h-2 bg-green-500 rounded-full"></span> Terminal Output
+          </h2>
+          <button onclick="clearConsole()" class="text-xs px-3 py-1 bg-gray-200 dark:bg-slate-800 hover:bg-red-100 dark:hover:bg-red-900/30 hover:text-red-600 dark:hover:text-red-400 rounded transition-colors border border-gray-300 dark:border-slate-700">
+          🗑️ 清除控制台
+          </button>
+        </div>
+        <div class="bg-black text-green-400 p-4 rounded-xl font-mono text-sm h-48 overflow-y-auto border border-gray-700 shadow-inner" id="console-output">
+          <span class="opacity-50">// 系統就緒...</span><br>
+          <span class="opacity-50">// 等待指令...</span>
+        </div>
       </div>
-      <footer class="footer">
-        <p>如何安裝 ffmpeg, Whisper 教學：<a href='https://max-everyday.com/2025/12/whisper-python/'>網頁圖文教學</a>、<a href='https://youtu.be/mJXUCLYjhmg'>YouTube 影片</a>。srt-video-cutter 實作的細節：<a href='https://max-everyday.com/2025/12/srt-video-cutter/'>網頁圖文教學</a>
-        </p>
-      </footer>
+      <div class="mt-8 px-2">
+        <h3 class="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-3 px-2">
+        Learning Resources
+        </h3>
+        <ul class="space-y-2">
+          <li>
+            <a href="https://max-everyday.com/2025/12/whisper-python/" target="_blank"
+              class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-purple-500 transition-colors px-2 py-1 rounded-md hover:bg-gray-100 dark:hover:bg-slate-800">
+              <span>📝</span> 如何安裝 ffmpeg, Whisper 教學：Whisper 語音轉逐字稿
+            </a>
+          </li>
+          <li>
+            <a href="https://youtu.be/mJXUCLYjhmg" target="_blank"
+              class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-red-500 transition-colors px-2 py-1 rounded-md hover:bg-gray-100 dark:hover:bg-slate-800">
+              <span>📺</span> YouTube 影片：Whisper 語音轉逐字稿
+            </a>
+          </li>
+          <li>
+            <a href="https://max-everyday.com/2025/12/srt-video-cutter/" target="_blank"
+              class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-purple-500 transition-colors px-2 py-1 rounded-md hover:bg-gray-100 dark:hover:bg-slate-800">
+              <span>📝</span>srt-video-cutter 實作的細節：用字幕自動剪掉影片空白段落(Whisper + ffmpeg)
+            </a>
+          </li>
+        </ul>
+      </div>
     </main>
+    <div class="mt-auto pt-8 pb-4">
+      <div class="flex flex-col items-center justify-center gap-1 opacity-40 hover:opacity-100 transition-opacity">
+        <div class="h-[1px] w-full bg-gradient-to-r from-transparent via-gray-400 to-transparent mb-2"></div>
+        <p class="text-[10px] font-mono tracking-tighter text-gray-500 dark:text-gray-400">
+          AI VIDEO WORKFLOW
+        </p>
+        <p class="text-[11px] font-bold font-mono text-purple-600 dark:text-purple-400">
+          ver {{ version }}
+        </p>
+      </div>
+    </div>
     <script src="/static/app.js"></script>
   </body>
 </html>

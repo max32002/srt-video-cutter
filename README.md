@@ -54,9 +54,17 @@
     * **Mac**: ```bash brew install ffmpeg```
     * **Linux**: ```bash sudo apt install ffmpeg```
 * **Whisper**
-    * 請確保你的電腦環境已經安裝了 openai-whisper: ```pip install openai-whisper```
+    * 請確保你的電腦環境已經安裝了 openai-whisper 相關套件: 
+```
+pip install openai-whisper faster-whisper setuptools-rust
+```
+* **OpenCC**
+    * 簡體轉繁體相關套件: 
+```
+pip install opencc-python-reimplemented
+```
 
-    (注意：Whisper 需要 PyTorch，如果你有 NVIDIA 顯卡並希望使用 GPU 加速，請務必安裝對應 CUDA 版本的 PyTorch)
+(注意：Whisper 需要 PyTorch，如果你有 NVIDIA 顯卡並希望使用 GPU 加速，請務必安裝對應 CUDA 版本的 PyTorch)
 
 ### 2. 下載專案 (Clone Project)
 
