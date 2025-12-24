@@ -6,33 +6,36 @@ document.getElementById('theme-icon').textContent = html.classList.contains('dar
 });
 // --- Tab Logic ---
 function switchTab(tabName) {
-const cutterContent = document.getElementById('tab-cutter-content');
-const whisperContent = document.getElementById('tab-whisper-content');
-const btnCutter = document.getElementById('tab-btn-cutter');
-const btnWhisper = document.getElementById('tab-btn-whisper');
-if (tabName === 'cutter') {
-cutterContent.classList.remove('hidden');
-cutterContent.classList.add('block');
-whisperContent.classList.remove('block');
-whisperContent.classList.add('hidden');
-// Style updates
-btnCutter.classList.add('border-tech-500', 'text-tech-600', 'dark:text-tech-400');
-btnCutter.classList.remove('border-transparent', 'text-gray-400');
+    const cutterContent = document.getElementById('tab-cutter-content');
+    const whisperContent = document.getElementById('tab-whisper-content');
+    const btnCutter = document.getElementById('tab-btn-cutter');
+    const btnWhisper = document.getElementById('tab-btn-whisper');
 
-btnWhisper.classList.remove('border-tech-500', 'text-tech-600', 'dark:text-tech-400');
-btnWhisper.classList.add('border-transparent', 'text-gray-400');
-} else {
-cutterContent.classList.remove('block');
-cutterContent.classList.add('hidden');
-whisperContent.classList.remove('hidden');
-whisperContent.classList.add('block');
-// Style updates
-btnWhisper.classList.add('border-purple-500', 'text-purple-600', 'dark:text-purple-400');
-btnWhisper.classList.remove('border-transparent', 'text-gray-400');
+    if (tabName === 'cutter') {
+        // 顯示內容
+        cutterContent.classList.replace('hidden', 'block');
+        whisperContent.classList.replace('block', 'hidden');
 
-btnCutter.classList.remove('border-tech-500', 'text-tech-600', 'dark:text-tech-400');
-btnCutter.classList.add('border-transparent', 'text-gray-400');
-}
+        // Cutter 啟動樣式
+        btnCutter.classList.add('border-tech-500', 'text-tech-600', 'dark:text-tech-400');
+        btnCutter.classList.remove('border-transparent', 'text-gray-400', 'dark:text-gray-500');
+
+        // Whisper 停用樣式 (讓顏色不明顯)
+        btnWhisper.classList.remove('border-purple-500', 'text-purple-600', 'dark:text-purple-400');
+        btnWhisper.classList.add('border-transparent', 'text-gray-400', 'dark:text-gray-500');
+    } else {
+        // 顯示內容
+        cutterContent.classList.replace('block', 'hidden');
+        whisperContent.classList.replace('hidden', 'block');
+
+        // Whisper 啟動樣式
+        btnWhisper.classList.add('border-purple-500', 'text-purple-600', 'dark:text-purple-400');
+        btnWhisper.classList.remove('border-transparent', 'text-gray-400', 'dark:text-gray-500');
+
+        // Cutter 停用樣式 (讓顏色不明顯)
+        btnCutter.classList.remove('border-tech-500', 'text-tech-600', 'dark:text-tech-400');
+        btnCutter.classList.add('border-transparent', 'text-gray-400', 'dark:text-gray-500');
+    }
 }
 // --- Console Helper ---
 function log(msg, type='info') {

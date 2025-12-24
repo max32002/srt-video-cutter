@@ -1,12 +1,18 @@
-# filename: server.py
-import uvicorn
-from fastapi import FastAPI, Request, Form
-from fastapi.templating import Jinja2Templates
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import JSONResponse
-import subprocess
 import os
+import shutil
 import shlex
+import subprocess
+import math
+from typing import List
+
+import uvicorn
+from fastapi import FastAPI, Request, Form, BackgroundTasks
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
+from fastapi.responses import JSONResponse
+from typing import List
+
+from faster_whisper import WhisperModel
 
 app = FastAPI()
 
@@ -18,6 +24,78 @@ templates = Jinja2Templates(directory="templates")
 
 if not os.path.exists("templates"):
     os.makedirs("templates")
+
+# --- 輔助函式：將秒數轉為 SRT 時間格式 (00:00:00,000) ---
+def format_timestamp(seconds: float):
+    x = seconds
+    hours = int(x // 3600)
+    x %= 3600
+    minutes = int(x // 60)
+    x %= 60
+    seconds = int(x)
+    milliseconds = int((x - seconds) * 1000)
+    return f"{hours:02d}:{minutes:02d}:{seconds:02d},{milliseconds:03d}"
+
+# --- 核心邏輯：使用 Faster-Whisper 執行辨識 ---
+def run_faster_whisper_task(input_file: str, language: str, model_size: str, device: str, output_formats: List[str]):
+    """
+    背景執行的核心函數：
+    1. 載入模型
+    2. 使用 VAD 自動切分並辨識
+    3. 即時寫入 SRT/TXT 檔案 (自動合併)
+    """
+    try:
+        print(f"--- 開始處理: {input_file} (Device: {device}, Model: {model_size}) ---")
+        
+        # 決定計算類型 (GPU 用 float16, CPU 用 int8 以加速)
+        compute_type = "float16" if device == "cuda" else "int8"
+        
+        # 1. 載入模型 (這只需要做一次，比切成實體小檔案反覆載入快得多)
+        model = WhisperModel(model_size, device=device, compute_type=compute_type)
+
+        # 2. 開始轉錄
+        # vad_filter=True : 這就是「自動切檔」的關鍵，它會忽略靜音片段，只辨識人聲
+        segments, info = model.transcribe(input_file, language=language, vad_filter=True)
+
+        # 準備輸出檔名
+        base_name = os.path.splitext(input_file)[0]
+        srt_path = f"{base_name}.srt"
+        txt_path = f"{base_name}.txt"
+        
+        # 開啟檔案準備寫入 (這裡演示同時輸出 srt 和 txt，如果需要)
+        # 透過 with open 保持檔案開啟，逐行寫入，達成「自動合併」的效果
+        
+        print(f"偵測到語言: {info.language} (信心度: {info.language_probability})")
+        
+        with open(srt_path, "w", encoding="utf-8") as f_srt, \
+             open(txt_path, "w", encoding="utf-8") as f_txt:
+            
+            for i, segment in enumerate(segments, start=1):
+                # 處理時間戳
+                start_time = format_timestamp(segment.start)
+                end_time = format_timestamp(segment.end)
+                text = segment.text.strip()
+                
+                # 寫入 SRT 格式
+                if "srt" in output_formats or "all" in output_formats:
+                    f_srt.write(f"{i}\n")
+                    f_srt.write(f"{start_time} --> {end_time}\n")
+                    f_srt.write(f"{text}\n\n")
+                    # 強制刷新緩衝區，讓使用者能看到檔案變大
+                    f_srt.flush() 
+
+                # 寫入 TXT 格式
+                if "txt" in output_formats or "all" in output_formats:
+                    f_txt.write(f"{text}\n")
+                    f_txt.flush()
+                
+                # 在 Console 顯示進度
+                print(f"[{start_time} -> {end_time}] {text}")
+
+        print(f"--- 處理完成: {srt_path} ---")
+
+    except Exception as e:
+        print(f"Faster-Whisper 執行錯誤: {e}")
 
 @app.get("/")
 async def read_root(request: Request):
@@ -123,76 +201,37 @@ async def extract_audio(input_video: str = Form(...)):
 
 @app.post("/run-whisper")
 async def run_whisper(
+    background_tasks: BackgroundTasks,  # 注入 BackgroundTasks
     input_mp3: str = Form(...),
     language: str = Form("zh"),
     model: str = Form("base"),
     device: str = Form("cpu"),
-    output_formats: str = Form(...) # 接收逗號分隔字串，例如 "srt,vtt"
+    output_formats: str = Form(...) 
 ):
     """
-    呼叫 Whisper CLI 產生字幕
+    呼叫 Faster-Whisper 進行高效能辨識
     """
     if not os.path.exists(input_mp3):
         return JSONResponse({"status": "error", "message": "找不到輸入音訊檔案"})
 
-    # 取得檔案所在目錄，以便 Whisper 輸出到同一層
-    output_dir = os.path.dirname(input_mp3)
-    if not output_dir:
-        output_dir = "."
+    # 處理格式字串 "srt,txt" -> ["srt", "txt"]
+    formats_list = output_formats.split(',')
 
-    # 處理格式列表 (前端傳來可能是 "srt,txt")
-    formats = output_formats.split(',')
-    
-    # 構建 Whisper 指令
-    # whisper "input.mp3" --model base --language zh --device cpu --output_format srt --output_dir "..."
-    cmd = [
-        "whisper", input_mp3,
-        "--model", model,
-        "--language", language,
-        "--device", device,
-        "--output_dir", output_dir,
-        # whisper CLI 只能一次接受一種格式參數，或者如果不指定預設是全部。
-        # 但新版 whisper 支援 --output_format 指定一種。
-        # 如果要多種，通常得執行多次或者不指定讓它全產。
-        # 不過標準 openai-whisper CLI 若不指定 --output_format 會全產。
-        # 若指定，通常只能單選。但我們可以透過 Python 邏輯來優化。
-        # 這裡為了簡單，如果選了 "all"，就不傳 --output_format。
-        # 如果選了多個但不是 all，我們可能需要迴圈執行，或是依賴 CLI 行為。
-        # **修正**: 標準 Whisper CLI 的 --output_format 參數通常接受單一值。
-        # 為了支援多選，最簡單的方法是：如果不選 all，則對每個格式跑一次轉換(太慢)，
-        # 或者我們直接不加 --output_format 參數讓它預設產生所有，然後刪除不要的。
-        # **最佳解**: 為了相容性，我們這裡將 output_format 設為逗號分隔傳入 Python 腳本會更靈活，
-        # 但既然是呼叫 CLI，我們假設使用者選了主要的一個，或者我們強制產生 all。
-        # 為了滿足你的需求 "多選"，我們這裡做一個變通：
-        # 如果包含 'all'，則不加 output_format 參數。
-        # 如果是特定幾個，我們只傳第一個給 CLI (因為 CLI 限制)，或者改用 python code 調用 whisper library。
-        # 為了 CLI 簡單化，我們這裡假設使用者傳入單一值，若要多選，建議用 'all'。
-        # *更正*: 根據你的需求，我將只傳遞 output_format 中的第一個選項，
-        # 或是如果使用者選了多個，我們使用 Python 內部呼叫會更好。
-        # 但為了維持呼叫 "外指令" 的架構，我們先傳遞第一個被選中的格式。
-    ]
-    
-    # 處理 output_format: Whisper CLI 支援 --output_format {txt,vtt,srt,tsv,json,all}
-    # 如果使用者選了多個，我們這裡只取第一個，或者如果包含 "all" 就用 all。
-    selected_fmt = formats[0]
-    if "all" in formats:
-        selected_fmt = "all"
-    
-    cmd.extend(["--output_format", selected_fmt])
-    # 注意: 如果只選 srt 和 vtt，CLI 無法一次輸出兩個。
-    # 這裡簡化邏輯：依據第一個選項執行。
-    
-    full_command = " ".join(shlex.quote(arg) for arg in cmd)
+    # 將耗時任務加入 BackgroundTasks
+    # 這樣 API 會立刻回傳 success，而轉檔會在後台繼續跑
+    background_tasks.add_task(
+        run_faster_whisper_task, 
+        input_mp3, 
+        language, 
+        model, 
+        device, 
+        formats_list
+    )
 
-    try:
-        subprocess.Popen(cmd)
-        return JSONResponse({
-            "status": "success",
-            "command": full_command,
-            "message": f"Whisper 已開始執行 (Model: {model}, Device: {device})"
-        })
-    except Exception as e:
-        return JSONResponse({"status": "error", "message": f"Whisper 啟動失敗: {e}"})
+    return JSONResponse({
+        "status": "success",
+        "message": f"Faster-Whisper 已在背景啟動。\n檔案: {input_mp3}\n模型: {model}\n裝置: {device}\n(請查看後端 Console 監控進度)"
+    })
 
 if __name__ == "__main__":
     uvicorn.run(app, host="127.0.0.1", port=8000)
