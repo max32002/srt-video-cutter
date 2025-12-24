@@ -105,9 +105,10 @@ def process_video(
     min_duration=0.4,
     padding=0.15,
     highpass_freq=80,
+    lowpass_freq=8000,
     afftdn_nr=12,
     aecho="0.8:0.3:40:0.2",
-    speechnorm_e=4,
+    speechnorm_e=4.0,
     speechnorm_p=0.9,
 ):
     if not os.path.exists(video_in):
@@ -152,24 +153,23 @@ def process_video(
         a = inp.audio.filter("atrim", start=start, end=end).filter("asetpts", "PTS-STARTPTS")
         segments.extend([v, a])
 
-    # 1. 建立 Concat 節點
     joined = ffmpeg.concat(*segments, v=1, a=1, n=len(segments)//2).node
-    
-    # 2. 明確指定索引：[0]是視訊, [1]是音訊 (避免 Media type mismatch)
     v_stream = joined[0]
     a_stream = joined[1]
 
-    # 3. 對音訊串流應用濾鏡鏈
-    # 目標參數: "highpass=f=80, afftdn=nr=12, aecho=0.8:0.3:40:0.2, speechnorm=e=4:p=0.9"
-    a_stream = (
-        a_stream
-        .filter("highpass", f=80)
-        .filter("afftdn", nr=12)
-        .filter("aecho", 0.8, 0.3, 40, 0.2)
-        .filter("speechnorm", e=4, p=0.9)
-    )
-
-    # 4. 輸出
+    if highpass_freq:
+        a_stream.filter("highpass", f=highpass_freq)
+    if lowpass_freq:
+        a_stream.filter("lowpass", f=lowpass_freq)
+    if afftdn_nr:
+        a_stream.filter("afftdn", nr=afftdn_nr)
+    aecho_array = None
+    if ':' in aecho:
+        aecho_array = aecho.split(":")
+    if aecho_array:
+        a_stream.filter("aecho", float(aecho_array[0]), float(aecho_array[1]), float(aecho_array[2]), float(aecho_array[3]))
+    if speechnorm_e and speechnorm_p:
+        a_stream.filter("speechnorm", e=speechnorm_e, p=speechnorm_p)
     out = ffmpeg.output(v_stream, a_stream, video_out)
 
     out.run(overwrite_output=True, quiet=True)
@@ -185,9 +185,10 @@ def main():
     p.add_argument("--padding", type=float, default=0.15)
 
     p.add_argument("--highpass", type=int, default=80, help="Highpass filter freq (0=off)")
+    p.add_argument("--lowpass", type=int, default=8000, help="Lowpass filter freq (0=off)")
     p.add_argument("--afftdn", type=int, default=12, help="FFT denoise level (0=off)")
     p.add_argument("--aecho", default="0.8:0.3:40:0.2", help="aecho in:out:delay:decay")
-    p.add_argument("--speechnorm-e", type=int, default=4)
+    p.add_argument("--speechnorm-e", type=float, default=4.0)
     p.add_argument("--speechnorm-p", type=float, default=0.9)
 
     args = p.parse_args()
@@ -199,6 +200,7 @@ def main():
         args.min_duration,
         args.padding,
         args.highpass,
+        args.lowpass,
         args.afftdn,
         args.aecho,
         args.speechnorm_e,

@@ -13,6 +13,7 @@ from fastapi.responses import JSONResponse
 from typing import List
 
 from faster_whisper import WhisperModel
+from contextlib import ExitStack
 
 app = FastAPI()
 
@@ -36,63 +37,70 @@ def format_timestamp(seconds: float):
     milliseconds = int((x - seconds) * 1000)
     return f"{hours:02d}:{minutes:02d}:{seconds:02d},{milliseconds:03d}"
 
-# --- 核心邏輯：使用 Faster-Whisper 執行辨識 ---
 def run_faster_whisper_task(input_file: str, language: str, model_size: str, device: str, output_formats: List[str]):
-    """
-    背景執行的核心函數：
-    1. 載入模型
-    2. 使用 VAD 自動切分並辨識
-    3. 即時寫入 SRT/TXT 檔案 (自動合併)
-    """
     try:
         print(f"--- 開始處理: {input_file} (Device: {device}, Model: {model_size}) ---")
         
-        # 決定計算類型 (GPU 用 float16, CPU 用 int8 以加速)
         compute_type = "float16" if device == "cuda" else "int8"
-        
-        # 1. 載入模型 (這只需要做一次，比切成實體小檔案反覆載入快得多)
         model = WhisperModel(model_size, device=device, compute_type=compute_type)
 
-        # 2. 開始轉錄
-        # vad_filter=True : 這就是「自動切檔」的關鍵，它會忽略靜音片段，只辨識人聲
-        segments, info = model.transcribe(input_file, language=language, vad_filter=True)
+        # 加入優化參數解決長延遲問題
+        segments, info = model.transcribe(
+            input_file, 
+            language=language, 
+            vad_filter=True,
+            # 關閉前文關聯，防止模型為了連貫性把句子硬湊在一起
+            condition_on_previous_text=False,
+            # 縮短靜音判定，強制切分
+            vad_parameters=dict(
+                min_silence_duration_ms=400,  # 只要停頓 0.4 秒就切斷
+                max_speech_duration_s=10,     # 強制每一段話最長不能超過 10 秒
+                speech_pad_ms=200             # 減少片段前后的緩衝音
+            ),
+            # beam_size 設小一點有助於減少模型過度延伸的幻覺
+            beam_size=5,
+            # 限制一個片段的最長秒數，避免過長合併
+            clip_timestamps=[0], 
+            max_initial_timestamp=1.0, 
+            # 加入提示詞，強迫模型在看到連接詞時斷開
+            initial_prompt="。，接著。然後。", 
+            # 提高對無聲的判定標準，避免抓到底噪
+            no_speech_threshold=0.6,
+        )
 
-        # 準備輸出檔名
         base_name = os.path.splitext(input_file)[0]
-        srt_path = f"{base_name}.srt"
-        txt_path = f"{base_name}.txt"
-        
-        # 開啟檔案準備寫入 (這裡演示同時輸出 srt 和 txt，如果需要)
-        # 透過 with open 保持檔案開啟，逐行寫入，達成「自動合併」的效果
-        
         print(f"偵測到語言: {info.language} (信心度: {info.language_probability})")
         
-        with open(srt_path, "w", encoding="utf-8") as f_srt, \
-             open(txt_path, "w", encoding="utf-8") as f_txt:
+        with ExitStack() as stack:
+            f_srt = None
+            f_txt = None
+
+            if "srt" in output_formats or "all" in output_formats:
+                srt_path = f"{base_name}.srt"
+                f_srt = stack.enter_context(open(srt_path, "w", encoding="utf-8"))
+
+            if "txt" in output_formats or "all" in output_formats:
+                txt_path = f"{base_name}.txt"
+                f_txt = stack.enter_context(open(txt_path, "w", encoding="utf-8"))
             
             for i, segment in enumerate(segments, start=1):
-                # 處理時間戳
                 start_time = format_timestamp(segment.start)
                 end_time = format_timestamp(segment.end)
                 text = segment.text.strip()
                 
-                # 寫入 SRT 格式
-                if "srt" in output_formats or "all" in output_formats:
+                if f_srt:
                     f_srt.write(f"{i}\n")
                     f_srt.write(f"{start_time} --> {end_time}\n")
                     f_srt.write(f"{text}\n\n")
-                    # 強制刷新緩衝區，讓使用者能看到檔案變大
                     f_srt.flush() 
 
-                # 寫入 TXT 格式
-                if "txt" in output_formats or "all" in output_formats:
+                if f_txt:
                     f_txt.write(f"{text}\n")
                     f_txt.flush()
                 
-                # 在 Console 顯示進度
                 print(f"[{start_time} -> {end_time}] {text}")
 
-        print(f"--- 處理完成: {srt_path} ---")
+        print(f"--- 處理完成 ---")
 
     except Exception as e:
         print(f"Faster-Whisper 執行錯誤: {e}")
@@ -106,8 +114,9 @@ async def run_cutter(
     input_file: str = Form(...),
     srt_file: str = Form(None),
     output_file: str = Form(None),
-    highpass: float = Form(80),
-    afftdn: float = Form(12),
+    highpass: int = Form(80),
+    lowpass: int = Form(8000),
+    afftdn: int = Form(12),
     aecho: str = Form("0.8:0.3:40:0.2"),
     speechnorm_e: float = Form(4),
     speechnorm_p: float = Form(0.9)
@@ -129,6 +138,11 @@ async def run_cutter(
         cmd.extend(["--highpass", str(highpass)])
     else:
         cmd.extend(["--highpass", "0"]) # Explicitly turn off
+
+    if lowpass > 0:
+        cmd.extend(["--lowpass", str(lowpass)])
+    else:
+        cmd.extend(["--lowpass", "0"]) # Explicitly turn off
         
     if afftdn > 0:
         cmd.extend(["--afftdn", str(afftdn)])
@@ -180,6 +194,7 @@ async def extract_audio(input_video: str = Form(...)):
         "-ar", "16000",
         "-ac", "1",
         "-ab", "16k",
+        "-af", "highpass=f=180,lowpass=f=4000,speechnorm=e=4:p=0.9",
         output_mp3
     ]
     
@@ -232,6 +247,7 @@ async def run_whisper(
         "status": "success",
         "message": f"Faster-Whisper 已在背景啟動。\n檔案: {input_mp3}\n模型: {model}\n裝置: {device}\n(請查看後端 Console 監控進度)"
     })
+
 
 if __name__ == "__main__":
     uvicorn.run(app, host="127.0.0.1", port=8000)
