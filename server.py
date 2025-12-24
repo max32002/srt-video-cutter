@@ -3,7 +3,7 @@ import shutil
 import shlex
 import subprocess
 import math
-from typing import List
+import re
 
 import uvicorn
 from fastapi import FastAPI, Request, Form, BackgroundTasks
@@ -37,7 +37,45 @@ def format_timestamp(seconds: float):
     milliseconds = int((x - seconds) * 1000)
     return f"{hours:02d}:{minutes:02d}:{seconds:02d},{milliseconds:03d}"
 
-def run_faster_whisper_task(input_file: str, language: str, model_size: str, device: str, output_formats: List[str]):
+def split_sentences(text: str):
+    pattern = r'(?<=[。！？!?；;])'
+    parts = re.split(pattern, text)
+    return [p.strip() for p in parts if p.strip()]
+
+def split_by_length(text: str, max_len: int):
+    lines = []
+    buf = ""
+    for ch in text:
+        buf += ch
+        if len(buf) >= max_len:
+            lines.append(buf)
+            buf = ""
+    if buf:
+        lines.append(buf)
+    return lines
+
+def build_subtitle_blocks(text: str, max_line_len=22, max_lines=2):
+    sentences = split_sentences(text)
+    blocks = []
+
+    for sent in sentences:
+        lines = split_by_length(sent, max_line_len)
+
+        for i in range(0, len(lines), max_lines):
+            block = lines[i:i + max_lines]
+            blocks.append("\n".join(block))
+
+    return blocks
+
+
+def run_faster_whisper_task(
+    input_file: str, 
+    language: str, 
+    model_size: str, 
+    device: str, 
+    output_formats: List[str],
+    max_line_len: int = 22
+):
     try:
         print(f"--- 開始處理: {input_file} (Device: {device}, Model: {model_size}) ---")
         
@@ -53,17 +91,12 @@ def run_faster_whisper_task(input_file: str, language: str, model_size: str, dev
             condition_on_previous_text=False,
             # 縮短靜音判定，強制切分
             vad_parameters=dict(
-                min_silence_duration_ms=400,  # 只要停頓 0.4 秒就切斷
-                max_speech_duration_s=10,     # 強制每一段話最長不能超過 10 秒
+                min_silence_duration_ms=300,  # 只要停頓 0.3 秒就切斷
+                max_speech_duration_s=3,     # 強制每一段話最長不能超過 4 秒
                 speech_pad_ms=200             # 減少片段前后的緩衝音
             ),
             # beam_size 設小一點有助於減少模型過度延伸的幻覺
             beam_size=5,
-            # 限制一個片段的最長秒數，避免過長合併
-            clip_timestamps=[0], 
-            max_initial_timestamp=1.0, 
-            # 加入提示詞，強迫模型在看到連接詞時斷開
-            initial_prompt="。，接著。然後。", 
             # 提高對無聲的判定標準，避免抓到底噪
             no_speech_threshold=0.6,
         )
@@ -76,34 +109,57 @@ def run_faster_whisper_task(input_file: str, language: str, model_size: str, dev
             f_txt = None
 
             if "srt" in output_formats or "all" in output_formats:
-                srt_path = f"{base_name}.srt"
-                f_srt = stack.enter_context(open(srt_path, "w", encoding="utf-8"))
+                f_srt = stack.enter_context(
+                    open(f"{base_name}.srt", "w", encoding="utf-8")
+                )
 
             if "txt" in output_formats or "all" in output_formats:
-                txt_path = f"{base_name}.txt"
-                f_txt = stack.enter_context(open(txt_path, "w", encoding="utf-8"))
-            
-            for i, segment in enumerate(segments, start=1):
-                start_time = format_timestamp(segment.start)
-                end_time = format_timestamp(segment.end)
+                f_txt = stack.enter_context(
+                    open(f"{base_name}.txt", "w", encoding="utf-8")
+                )
+
+            srt_index = 1
+
+            for segment in segments:
+                start = segment.start
+                end = segment.end
                 text = segment.text.strip()
-                
-                if f_srt:
-                    f_srt.write(f"{i}\n")
-                    f_srt.write(f"{start_time} --> {end_time}\n")
-                    f_srt.write(f"{text}\n\n")
-                    f_srt.flush() 
 
-                if f_txt:
-                    f_txt.write(f"{text}\n")
-                    f_txt.flush()
-                
-                print(f"[{start_time} -> {end_time}] {text}")
+                if not text:
+                    continue
 
-        print(f"--- 處理完成 ---")
+                blocks = build_subtitle_blocks(
+                    text,
+                    max_line_len=max_line_len,
+                    max_lines=2
+                )
+
+                duration = end - start
+                per_block = duration / len(blocks)
+
+                for i, block in enumerate(blocks):
+                    s = start + i * per_block
+                    e = s + per_block
+
+                    if f_srt:
+                        f_srt.write(f"{srt_index}\n")
+                        f_srt.write(
+                            f"{format_timestamp(s)} --> {format_timestamp(e)}\n"
+                        )
+                        f_srt.write(f"{block}\n\n")
+
+                    if f_txt:
+                        f_txt.write(block.replace("\n", " ") + "\n")
+
+                    print(f"[{format_timestamp(s)} -> {format_timestamp(e)}]")
+                    print(block)
+
+                    srt_index += 1
+
+        print(f"--- 處理完成 ({info.language}, {info.language_probability:.2f}) ---")
 
     except Exception as e:
-        print(f"Faster-Whisper 執行錯誤: {e}")
+        print(f"Faster-Whisper 錯誤: {e}")
 
 @app.get("/")
 async def read_root(request: Request):

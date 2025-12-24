@@ -81,7 +81,7 @@ async function submitCutter()
         const data = await res.json();
         if (data.status === 'success')
         {
-            log(data.command)
+            if(data.command)
             {
                 log(`指令: ${data.command}`, 'cmd');
             }
@@ -177,7 +177,7 @@ async function submitWhisper()
         const data = await res.json();
         if (data.status === 'success')
         {
-            log(data.command) 
+            if(data.command) 
             {
                 log(`指令: ${data.command}`, 'cmd');
             }
