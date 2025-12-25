@@ -16,7 +16,7 @@ from faster_whisper import WhisperModel
 from contextlib import ExitStack
 from opencc import OpenCC
 
-# --- 在檔案上方定義版本號 ---
+APP_NAME = "SRT Video Cutter"
 VERSION = "1.0.0"
 
 app = FastAPI()
@@ -344,7 +344,7 @@ async def run_whisper(
 if __name__ == "__main__":
     # 在啟動前印出漂亮的啟動資訊
     print("\n" + "="*30)
-    print(f" AI Video Suite")
+    print(f" {APP_NAME}")
     print(f" Version: {VERSION}")
     print("="*30 + "\n")
     uvicorn.run(app, host="127.0.0.1", port=8000)
