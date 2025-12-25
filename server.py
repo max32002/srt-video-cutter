@@ -78,7 +78,7 @@ def run_faster_whisper_task(
     model_size: str, 
     device: str, 
     output_formats: List[str],
-    opencc_config: str = "s2twp",
+    opencc_config: str = "s2tw",
     min_silence_duration_ms: int = 500,
     max_speech_duration_s: int = 15,
     speech_pad_ms: int = 400,
