@@ -17,7 +17,7 @@ from contextlib import ExitStack
 from opencc import OpenCC
 
 APP_NAME = "SRT Video Cutter"
-VERSION = "1.0.0"
+VERSION = "1.0.1"
 
 app = FastAPI()
 
@@ -184,8 +184,7 @@ def run_faster_whisper_task(
 
 @app.get("/")
 async def read_root(request: Request):
-    return templates.TemplateResponse("index.html", {
-            "request": request, 
+    return templates.TemplateResponse(request, "index.html", {
             "version": VERSION
         })
 
